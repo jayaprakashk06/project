@@ -9,7 +9,7 @@ Legacy entrypoints are preserved while delegating to the new modular architectur
 This module is intentionally UI-agnostic so it can be imported by Streamlit
 (`app.py`) or used from the command line.
 """
-
+"""
 from __future__ import annotations
 
 import argparse
