@@ -212,6 +212,16 @@ git reset --hard origin/main
 pytest -q tests/test_syntax_smoke.py tests/test_runtime_imports.py
 ```
 3. Ensure you are not launching an old extracted folder copy (e.g. `project-main (6)`) with stale files.
+
+
+### Quick terminal model bootstrap (RandomForest + joblib)
+If you want a minimal terminal-only flow similar to a small script, you can bootstrap a demo model and predict immediately:
+
+```python
+from models.crime_prediction import train_demo_model_for_quick_start, predict_risk
+
+train_demo_model_for_quick_start()  # creates crime_risk_model.joblib
+print(predict_risk(13.0827, 80.2707, 22, 5, 12))
 ## Dataset Format
 
 CSV file must include:

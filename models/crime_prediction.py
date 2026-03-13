@@ -14,6 +14,7 @@ from config import MODEL_PATH, RANDOM_STATE
 from utils.feature_engineering import build_model_frame
 
 FEATURES = ["latitude", "longitude", "hour", "day_of_week", "month", "crime_frequency"]
+COMPAT_MODEL_PATH = Path("crime_risk_model.joblib")
 RISK_LEVELS = ["low", "medium", "high"]
 
 
@@ -124,6 +125,36 @@ def train_crime_model(clean_df: pd.DataFrame) -> PredictionArtifacts:
     model.fit(X_train, y_train)
 
     accuracy = float(model.score(X_test, y_test))
+    return PredictionArtifacts(model=model, accuracy=accuracy, classes=list(model.classes_))
+
+
+def train_demo_model_for_quick_start(model_path: Path = COMPAT_MODEL_PATH) -> Path:
+    """Train a tiny RandomForest model using the user-provided sample style data.
+
+    This is a compatibility helper for quick terminal usage when no project-trained
+    model exists yet.
+    """
+    data = {
+        "latitude": [13.0827, 11.0168, 9.9252, 10.7905, 11.6643],
+        "longitude": [80.2707, 76.9558, 78.1198, 78.7047, 78.1460],
+        "hour": [22, 18, 21, 14, 19],
+        "day": [5, 3, 6, 2, 4],
+        "month": [12, 11, 10, 8, 9],
+        "risk": [1, 0, 1, 0, 1],
+    }
+    df = pd.DataFrame(data)
+    X = df[["latitude", "longitude", "hour", "day", "month"]]
+    y = df["risk"]
+
+    model = RandomForestClassifier(random_state=RANDOM_STATE)
+    model.fit(X, y)
+
+    payload = {
+        "compat_model": model,
+        "features": ["latitude", "longitude", "hour", "day", "month"],
+    }
+    joblib.dump(payload, model_path)
+    return model_path
         X, y, test_size=0.25, random_state=RANDOM_STATE, stratify=y
     )
 
@@ -152,6 +183,14 @@ def save_prediction_model(artifacts: PredictionArtifacts, model_path: Path = MOD
 
 
 def load_prediction_model(model_path: Path = MODEL_PATH) -> dict:
+    if model_path.exists():
+        return joblib.load(model_path)
+    if COMPAT_MODEL_PATH.exists():
+        return joblib.load(COMPAT_MODEL_PATH)
+    raise FileNotFoundError(
+        f"Model file not found: {model_path}. Train via app/pipeline first, "
+        f"or call train_demo_model_for_quick_start()."
+    )
     if not model_path.exists():
         raise FileNotFoundError(f"Model file not found: {model_path}")
     return joblib.load(model_path)
@@ -167,6 +206,23 @@ def predict_crime_probability(
     model_path: Path = MODEL_PATH,
 ) -> dict[str, float | str]:
     payload = load_prediction_model(model_path)
+
+    if "compat_model" in payload:
+        model: RandomForestClassifier = payload["compat_model"]
+        sample = pd.DataFrame(
+            [{"latitude": latitude, "longitude": longitude, "hour": hour, "day": day_of_week, "month": month}]
+        )
+        prob_high = float(model.predict_proba(sample)[0][1])
+        risk = "high" if prob_high >= 0.5 else "low"
+        return {
+            "risk_level": risk,
+            "crime_probability": prob_high if risk == "high" else 1.0 - prob_high,
+            "low": 1.0 - prob_high,
+            "medium": 0.0,
+            "high": prob_high,
+        }
+
+    model = payload["model"]
     model = payload["model"]
     model: RandomForestClassifier = payload["model"]
     features: list[str] = payload["features"]
@@ -207,6 +263,7 @@ def predict_risk(
     crime_frequency: float = 10.0,
     model_path: Path = MODEL_PATH,
 ) -> str:
+    """Simple API compatible with user snippet.
     """Simple API requested by user-style snippet.
 
     Returns: "High Crime Risk" or "Low Crime Risk".
