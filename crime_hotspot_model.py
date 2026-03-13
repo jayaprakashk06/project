@@ -54,11 +54,21 @@ class ModelArtifacts:
 
 
 def validate_columns(df: pd.DataFrame) -> None:
-def load_and_validate_data(file_path: str) -> pd.DataFrame:
-    df = pd.read_csv(file_path)
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
+
+
+def load_and_validate_data(file_path: str) -> pd.DataFrame:
+    df = pd.read_csv(file_path)
+
+    validate_columns(df)
+
+    missing = REQUIRED_COLUMNS - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {sorted(missing)}")
+
+    return df
 
 
 def clean_crime_data(df: pd.DataFrame) -> pd.DataFrame:
