@@ -1,15 +1,6 @@
-# Backward-compatible facade for crime intelligence modeling.
-#
-# Legacy entrypoints are preserved while delegating to the modular architecture.
-"""Backward-compatible facade for crime intelligence modeling.
 
-Legacy entrypoints are preserved while delegating to the new modular architecture.
-"""Core ML logic for crime hotspot prediction.
 
-This module is intentionally UI-agnostic so it can be imported by Streamlit
-(`app.py`) or used from the command line.
-"""
-"""
+
 from __future__ import annotations
 
 import argparse
