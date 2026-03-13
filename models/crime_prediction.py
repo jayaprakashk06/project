@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import joblib
+import numpy as np
+import pandas as pd
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -12,10 +14,12 @@ from config import MODEL_PATH, RANDOM_STATE
 from utils.feature_engineering import build_model_frame
 
 FEATURES = ["latitude", "longitude", "hour", "day_of_week", "month", "crime_frequency"]
+RISK_LEVELS = ["low", "medium", "high"]
 
 
 @dataclass
 class PredictionArtifacts:
+    model: dict
     model: RandomForestClassifier
     accuracy: float
     classes: list[str]
@@ -23,6 +27,7 @@ class PredictionArtifacts:
 
 def derive_risk_labels(df: pd.DataFrame) -> pd.Series:
     bins = df["crime_frequency"].quantile([0.33, 0.66]).values
+    q1, q2 = float(bins[0]), float(bins[1])
     q1, q2 = bins[0], bins[1]
 
     def label(v: float) -> str:
@@ -39,6 +44,64 @@ def derive_risk_labels(df: pd.DataFrame) -> pd.Series:
     return y
 
 
+def _build_centroid_model(X: pd.DataFrame, y: pd.Series) -> dict:
+    centroids: dict[str, np.ndarray] = {}
+    priors: dict[str, float] = {}
+    for lbl in sorted(y.unique()):
+        mask = y == lbl
+        centroids[lbl] = X.loc[mask, FEATURES].mean().to_numpy(dtype=float)
+        priors[lbl] = float(mask.mean())
+
+    for lbl in RISK_LEVELS:
+        if lbl not in centroids:
+            centroids[lbl] = X[FEATURES].mean().to_numpy(dtype=float)
+            priors[lbl] = 1e-6
+
+    total_prior = sum(priors.values())
+    priors = {k: v / total_prior for k, v in priors.items()}
+    return {"centroids": centroids, "priors": priors, "features": FEATURES}
+
+
+def _predict_proba(model: dict, X: pd.DataFrame) -> np.ndarray:
+    rows = X[FEATURES].to_numpy(dtype=float)
+    classes = RISK_LEVELS
+    centroid_mat = np.vstack([model["centroids"][c] for c in classes])
+    priors = np.array([model["priors"][c] for c in classes], dtype=float)
+
+    probs = []
+    for r in rows:
+        dists = np.linalg.norm(centroid_mat - r, axis=1)
+        scores = 1.0 / (dists + 1e-6)
+        scores = scores * priors
+        scores = scores / scores.sum()
+        probs.append(scores)
+    return np.array(probs)
+
+
+def train_crime_model(clean_df: pd.DataFrame) -> PredictionArtifacts:
+    model_df = build_model_frame(clean_df)
+    y = derive_risk_labels(model_df)
+
+    rng = np.random.default_rng(RANDOM_STATE)
+    idx = np.arange(len(model_df))
+    rng.shuffle(idx)
+    split = int(len(idx) * 0.75)
+    if len(idx) > 3:
+        train_idx, test_idx = idx[:split], idx[split:]
+    else:
+        train_idx, test_idx = idx, idx
+
+    X_train = model_df.iloc[train_idx][FEATURES]
+    y_train = y.iloc[train_idx]
+    X_test = model_df.iloc[test_idx][FEATURES]
+    y_test = y.iloc[test_idx]
+
+    model = _build_centroid_model(X_train, y_train)
+    pred_probs = _predict_proba(model, X_test)
+    pred_labels = [RISK_LEVELS[int(np.argmax(p))] for p in pred_probs]
+    accuracy = float((pd.Series(pred_labels).values == y_test.values).mean())
+
+    return PredictionArtifacts(model=model, accuracy=accuracy, classes=RISK_LEVELS)
 def train_crime_model(clean_df: pd.DataFrame) -> PredictionArtifacts:
     model_df = build_model_frame(clean_df)
     X = model_df[FEATURES]
@@ -88,6 +151,7 @@ def predict_crime_probability(
     model_path: Path = MODEL_PATH,
 ) -> dict[str, float | str]:
     payload = load_prediction_model(model_path)
+    model = payload["model"]
     model: RandomForestClassifier = payload["model"]
     features: list[str] = payload["features"]
 
@@ -103,6 +167,8 @@ def predict_crime_probability(
             }
         ]
     )
+    probs = _predict_proba(model, sample)[0]
+    mapping = {lbl: float(prob) for lbl, prob in zip(RISK_LEVELS, probs)}
     probs = model.predict_proba(sample[features])[0]
     labels = list(model.classes_)
     mapping = {lbl: float(prob) for lbl, prob in zip(labels, probs)}

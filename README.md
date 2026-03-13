@@ -104,16 +104,19 @@ If that file is missing, synthetic Tamil Nadu city-level crime data is generated
 ## AI Components
 
 ### 1) Crime Risk Prediction
+- Model: lightweight centroid-probability classifier (dependency-stable fallback)
 - Model: `RandomForestClassifier`
 - Features: `latitude`, `longitude`, `hour`, `day_of_week`, `month`, `crime_frequency`
 - Output: class probability and risk level (`low`, `medium`, `high`)
 
 ### 2) Hotspot Detection
+- Method: grid-density clustering (DBSCAN-like behavior without heavy dependency)
 - Model: `DBSCAN`
 - Input: `latitude`, `longitude`
 - Output: high-density hotspot clusters
 
 ### 3) Temporal Forecast
+- Method: lightweight trend extrapolation (NumPy linear forecast)
 - Model: `ARIMA(1,1,1)` (fallback to moving-average if unavailable)
 - Output: next 7-day forecast
 
@@ -163,6 +166,11 @@ For full interactive charts, install dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+
+### Streamlit Cloud dependency stability
+This project now uses a lightweight dependency set to reduce deployment failures on Streamlit Cloud (especially around compiled scientific packages).
 ## Dataset Format
 
 CSV file must include:
