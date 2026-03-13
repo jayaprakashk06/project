@@ -1,6 +1,17 @@
 from __future__ import annotations
 
 import pandas as pd
+import streamlit as st
+from streamlit_folium import st_folium
+
+try:
+    import plotly.express as px
+
+    PLOTLY_AVAILABLE = True
+except Exception:
+    px = None
+    PLOTLY_AVAILABLE = False
+
 import plotly.express as px
 import streamlit as st
 from streamlit_folium import st_folium
@@ -36,6 +47,8 @@ st.markdown(
 )
 st.title("🛡️ AI Crime Intelligence System")
 st.caption("Production-style analytics, hotspot detection, and risk prediction for Tamil Nadu crime data.")
+if not PLOTLY_AVAILABLE:
+    st.warning("Optional dependency `plotly` is not installed. Falling back to built-in Streamlit charts. Run `pip install -r requirements.txt` for full interactive charts.")
 
 
 @st.cache_data
@@ -161,6 +174,41 @@ else:
     trend_df = daily_crime_trend(filtered)
     forecast_df = forecast_next_7_days(filtered)
 
+    if PLOTLY_AVAILABLE:
+        fig_district = px.bar(district_df, x="district", y="count", title="Crime by District")
+        fig_type = px.pie(type_df, names="crime_type", values="count", title="Crime by Type")
+        fig_hour = px.line(hour_df, x="hour", y="count", markers=True, title="Crime by Hour")
+        fig_trend = px.line(trend_df, x="date", y="count", title="Historical Crime Trend")
+        fig_forecast = px.line(forecast_df, x="date", y="forecast_count", markers=True, title="Forecast: Next 7 Days")
+
+        r1c1, r1c2 = st.columns(2)
+        r1c1.plotly_chart(fig_district, use_container_width=True)
+        r1c2.plotly_chart(fig_type, use_container_width=True)
+
+        r2c1, r2c2 = st.columns(2)
+        r2c1.plotly_chart(fig_hour, use_container_width=True)
+        r2c2.plotly_chart(fig_trend, use_container_width=True)
+
+        st.plotly_chart(fig_forecast, use_container_width=True)
+    else:
+        r1c1, r1c2 = st.columns(2)
+        r1c1.subheader("Crime by District")
+        r1c1.bar_chart(district_df.set_index("district")["count"])
+        r1c2.subheader("Crime by Type")
+        r1c2.bar_chart(type_df.set_index("crime_type")["count"])
+
+        r2c1, r2c2 = st.columns(2)
+        r2c1.subheader("Crime by Hour")
+        r2c1.line_chart(hour_df.set_index("hour")["count"])
+        r2c2.subheader("Historical Crime Trend")
+        trend_plot = trend_df.copy()
+        trend_plot["date"] = pd.to_datetime(trend_plot["date"])
+        r2c2.line_chart(trend_plot.set_index("date")["count"])
+
+        st.subheader("Forecast: Next 7 Days")
+        forecast_plot = forecast_df.copy()
+        forecast_plot["date"] = pd.to_datetime(forecast_plot["date"])
+        st.line_chart(forecast_plot.set_index("date")["forecast_count"])
     fig_district = px.bar(district_df, x="district", y="count", title="Crime by District")
     fig_type = px.pie(type_df, names="crime_type", values="count", title="Crime by Type")
     fig_hour = px.line(hour_df, x="hour", y="count", markers=True, title="Crime by Hour")

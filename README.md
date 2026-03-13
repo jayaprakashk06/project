@@ -154,6 +154,15 @@ If Streamlit Cloud keeps showing an old traceback (for example an `IndentationEr
 ```bash
 python -m py_compile app.py crime_hotspot_model.py
 pytest -q tests/test_syntax_smoke.py tests/test_runtime_imports.py
+```
+
+
+### Optional `plotly` fallback
+If `plotly` is missing, the app now falls back to built-in Streamlit charts instead of crashing.
+For full interactive charts, install dependencies:
+
+```bash
+pip install -r requirements.txt
 ## Dataset Format
 
 CSV file must include:
