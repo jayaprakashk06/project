@@ -69,3 +69,31 @@ assault,2024-01-30T16:00:00,40.761942,-73.982541
 - The backend ML model is `RandomForestClassifier`.
 - Model features: `hour`, `day_of_week`, `latitude`, `longitude`.
 - If uploaded data is invalid (missing columns, bad coordinates), the app shows a friendly error.
+
+
+## Model Persistence & Inference
+
+The backend trains a `RandomForestClassifier` on features:
+- `latitude`
+- `longitude`
+- `hour`
+- `day_of_week`
+
+A trained model is saved with `joblib` to:
+- `models/crime_risk_model.joblib`
+
+You can use programmatic inference with:
+
+```python
+from crime_hotspot_model import predict_crime_risk
+
+result = predict_crime_risk(40.73, -73.98, 21, 5)
+print(result)
+# {
+#   "crime_risk": "medium",
+#   "prediction_probability": 0.61,
+#   "low_probability": ...,
+#   "medium_probability": ...,
+#   "high_probability": ...
+# }
+```

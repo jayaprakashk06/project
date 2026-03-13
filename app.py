@@ -13,8 +13,8 @@ from crime_hotspot_model import (
     build_training_frame,
     clean_crime_data,
     engineer_features,
-    predict_risk_score,
-    risk_label,
+    predict_crime_risk,
+    save_model,
     score_hotspots,
     train_model,
 )
@@ -114,7 +114,9 @@ try:
 
     fmap = create_crime_hotspot_map(feature_df, hotspot_df)
     st_folium(fmap, width=1200, height=550)
-    st.success(f"Model trained. Validation AUC: {artifacts.auc:.4f}")
+    saved_model_path = save_model(artifacts)
+    st.success(f"Model trained. Validation accuracy: {artifacts.auc:.4f}")
+    st.caption(f"Trained model saved to `{saved_model_path}`")
 except ValueError as exc:
     st.error(f"Model/map error: {exc}")
     st.stop()
@@ -139,14 +141,29 @@ if st.button("Predict Crime Risk"):
         if not (-90 <= pred_lat <= 90 and -180 <= pred_lon <= 180):
             raise ValueError("Coordinates are out of valid range.")
 
-        score = predict_risk_score(artifacts, pred_lat, pred_lon, pred_hour, pred_dow)
-        label = risk_label(score)
+        result = predict_crime_risk(
+            latitude=pred_lat,
+            longitude=pred_lon,
+            hour=pred_hour,
+            day=pred_dow,
+            model_path="models/crime_risk_model.joblib",
+        )
+        label = str(result["crime_risk"]).upper()
+        prob = float(result["prediction_probability"])
 
         if label == "HIGH":
-            st.error(f"Predicted Risk: {label} ({score:.2%})")
+            st.error(f"Predicted Risk: {label} ({prob:.2%})")
         elif label == "MEDIUM":
-            st.warning(f"Predicted Risk: {label} ({score:.2%})")
+            st.warning(f"Predicted Risk: {label} ({prob:.2%})")
         else:
-            st.success(f"Predicted Risk: {label} ({score:.2%})")
+            st.success(f"Predicted Risk: {label} ({prob:.2%})")
+
+        st.write(
+            {
+                "low_probability": round(float(result["low_probability"]), 4),
+                "medium_probability": round(float(result["medium_probability"]), 4),
+                "high_probability": round(float(result["high_probability"]), 4),
+            }
+        )
     except Exception as exc:
         st.error(f"Prediction error: {exc}")
