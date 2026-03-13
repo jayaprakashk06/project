@@ -171,6 +171,22 @@ pip install -r requirements.txt
 
 ### Streamlit Cloud dependency stability
 This project now uses a lightweight dependency set to reduce deployment failures on Streamlit Cloud (especially around compiled scientific packages).
+
+
+### Unterminated triple-quoted string error
+If you see `SyntaxError: unterminated triple-quoted string literal` in `crime_hotspot_model.py` on your local machine:
+
+1. Delete local stale bytecode and restart from a clean pull:
+```bash
+find . -name "__pycache__" -type d -prune -exec rm -rf {} +
+git fetch --all
+git reset --hard origin/main
+```
+2. Run verification before `streamlit run app.py`:
+```bash
+pytest -q tests/test_syntax_smoke.py tests/test_runtime_imports.py
+```
+3. Ensure you are not launching an old extracted folder copy (e.g. `project-main (6)`) with stale files.
 ## Dataset Format
 
 CSV file must include:

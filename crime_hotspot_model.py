@@ -1,3 +1,6 @@
+# Backward-compatible facade for crime intelligence modeling.
+#
+# Legacy entrypoints are preserved while delegating to the modular architecture.
 """Backward-compatible facade for crime intelligence modeling.
 
 Legacy entrypoints are preserved while delegating to the new modular architecture.
@@ -104,6 +107,11 @@ def train_model(training_df: pd.DataFrame) -> ModelArtifacts:
     return ModelArtifacts(model=artifacts.model, feature_columns=[], auc=artifacts.accuracy)
 
 
+def score_hotspots(
+    _artifacts: ModelArtifacts,
+    feature_df: pd.DataFrame,
+    prediction_hour: int | None = None,
+) -> pd.DataFrame:
 def score_hotspots(_artifacts: ModelArtifacts, feature_df: pd.DataFrame, prediction_hour: int | None = None) -> pd.DataFrame:
     out = feature_df.copy()
     if prediction_hour is not None:
@@ -113,6 +121,7 @@ def score_hotspots(_artifacts: ModelArtifacts, feature_df: pd.DataFrame, predict
 
 
 def predict_crime_risk(latitude: float, longitude: float, hour: int, day: int) -> dict[str, float | str]:
+    # Generic context defaults for the advanced model inputs.
     # Use generic defaults for context features expected by advanced model
     return predict_crime_probability(
         latitude=latitude,
