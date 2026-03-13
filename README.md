@@ -96,6 +96,10 @@ Required columns:
 - `timestamp`
 - `latitude`
 - `longitude`
+
+Optional but recommended:
+- `crime_id`
+- `district` (auto-derived from nearest Tamil Nadu city if missing)
 - `district`
 
 If no dataset is uploaded, the app loads `data/sample_crime_data.csv`.
@@ -116,6 +120,8 @@ If that file is missing, synthetic Tamil Nadu city-level crime data is generated
 - Output: high-density hotspot clusters
 
 ### 3) Temporal Forecast
+- Method: trend + weekly seasonality forecast (NumPy)
+- Output: next 7-day forecast with day-of-week variation
 - Method: lightweight trend extrapolation (NumPy linear forecast)
 - Model: `ARIMA(1,1,1)` (fallback to moving-average if unavailable)
 - Output: next 7-day forecast
