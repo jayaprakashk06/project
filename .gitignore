@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+artifacts/*.html
+artifacts/*.csv
+
+models/*.joblib
+models/artifacts/*.joblib
+crime_risk_model.joblib
