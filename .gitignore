@@ -5,3 +5,4 @@ artifacts/*.html
 artifacts/*.csv
 
 models/*.joblib
+models/artifacts/*.joblib
