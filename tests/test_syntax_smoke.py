@@ -30,20 +30,20 @@ def test_python_modules_compile() -> None:
     assert py_files, "No Python files discovered for syntax smoke test"
 
     for path in py_files:
-PY_FILES = [
-    "app.py",
-    "crime_hotspot_model.py",
-    "config.py",
-    "dataset_generator.py",
-    "models/crime_prediction.py",
-    "models/hotspot_clustering.py",
-    "analytics/crime_statistics.py",
-    "analytics/temporal_analysis.py",
-    "utils/preprocessing.py",
-    "utils/feature_engineering.py",
-    "visualization/map_visualization.py",
-    "visualization/heatmap_layer.py",
-]
+        PY_FILES = [
+            "app.py",
+            "crime_hotspot_model.py",
+            "config.py",
+            "dataset_generator.py",
+            "models/crime_prediction.py",
+            "models/hotspot_clustering.py",
+            "analytics/crime_statistics.py",
+            "analytics/temporal_analysis.py",
+            "utils/preprocessing.py",
+            "utils/feature_engineering.py",
+            "visualization/map_visualization.py",
+            "visualization/heatmap_layer.py",
+           ]
 
 
 def test_python_modules_compile() -> None:
