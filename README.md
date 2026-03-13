@@ -222,6 +222,21 @@ from models.crime_prediction import train_demo_model_for_quick_start, predict_ri
 
 train_demo_model_for_quick_start()  # creates crime_risk_model.joblib
 print(predict_risk(13.0827, 80.2707, 22, 5, 12))
+```
+
+
+## SafeCity app input format (current `app.py`)
+If you upload a CSV in the current Streamlit app, include these columns:
+- `district`
+- `latitude`
+- `longitude`
+- `hour` (0-23)
+- `day` (1-7)
+- `month` (1-12)
+- `crime_type`
+- `risk` (0 or 1)
+
+If no file is uploaded, the app uses a built-in Tamil Nadu demo dataset automatically.
 ## Dataset Format
 
 CSV file must include:
