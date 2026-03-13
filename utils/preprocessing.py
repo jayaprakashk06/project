@@ -26,6 +26,16 @@ def _nearest_district(latitude: float, longitude: float) -> str:
 
 def validate_crime_data(df: pd.DataFrame) -> None:
     missing = REQUIRED_BASE_COLUMNS - set(df.columns)
+import pandas as pd
+
+from config import REQUIRED_COLUMNS, TN_CITY_CENTERS
+
+
+CRIME_TYPES = ["theft", "burglary", "assault", "vandalism", "robbery", "cybercrime"]
+
+
+def validate_crime_data(df: pd.DataFrame) -> None:
+    missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
 
@@ -35,6 +45,7 @@ def clean_crime_data(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
 
     out = out.dropna(subset=list(REQUIRED_BASE_COLUMNS))
+    out = out.dropna(subset=list(REQUIRED_COLUMNS))
     out["timestamp"] = pd.to_datetime(out["timestamp"], errors="coerce")
     out["latitude"] = pd.to_numeric(out["latitude"], errors="coerce")
     out["longitude"] = pd.to_numeric(out["longitude"], errors="coerce")
@@ -60,6 +71,8 @@ def clean_crime_data(df: pd.DataFrame) -> pd.DataFrame:
     if out.empty:
         raise ValueError("No valid records remain after cleaning.")
 
+    if out.empty:
+        raise ValueError("No valid records remain after cleaning.")
     return out.sort_values("timestamp").reset_index(drop=True)
 
 
