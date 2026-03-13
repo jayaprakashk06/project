@@ -13,6 +13,25 @@ This repository was upgraded from a basic hotspot demo into a modular, productio
 - **Interactive Folium Map** (markers + heatmap + hotspot zones)
 - **Dark-theme Streamlit UX** with sidebar navigation and filters
 - **Dynamic synthetic Tamil Nadu data generation** when dataset is missing
+# Crime Hotspot AI
+
+A Streamlit-based AI web app for urban crime analytics, hotspot mapping, and crime risk prediction using historical incident data.
+
+## Features
+
+- **Dataset Upload**: Upload CSV crime data; if not provided, a sample dataset is loaded automatically.
+- **Crime Analytics Dashboard**:
+  - crimes by type
+  - crimes by hour
+  - crimes by location
+  - crime trend over time
+- **Hotspot Map**:
+  - incident markers
+  - heatmap layer
+  - hotspot clusters
+- **Crime Risk Prediction**:
+  - inputs: latitude, longitude, hour, day_of_week
+  - output: risk score + label (**LOW / MEDIUM / HIGH**)
 
 ## Project Structure
 
@@ -41,6 +60,19 @@ project/
 ```
 
 ## Setup
+crime_hotspot_ai/
+├── app.py
+├── crime_hotspot_model.py
+├── dataset_generator.py
+├── map_visualization.py
+├── analytics.py
+├── requirements.txt
+├── README.md
+└── data/
+    └── sample_crime_data.csv
+```
+
+## Installation
 
 ```bash
 python -m venv .venv
@@ -49,6 +81,7 @@ pip install -r requirements.txt
 ```
 
 ## Run
+## Run the App
 
 ```bash
 streamlit run app.py
@@ -72,16 +105,19 @@ If that file is missing, synthetic Tamil Nadu city-level crime data is generated
 
 ### 1) Crime Risk Prediction
 - Model: lightweight centroid-probability classifier (dependency-stable fallback)
+- Model: `RandomForestClassifier`
 - Features: `latitude`, `longitude`, `hour`, `day_of_week`, `month`, `crime_frequency`
 - Output: class probability and risk level (`low`, `medium`, `high`)
 
 ### 2) Hotspot Detection
 - Method: grid-density clustering (DBSCAN-like behavior without heavy dependency)
+- Model: `DBSCAN`
 - Input: `latitude`, `longitude`
 - Output: high-density hotspot clusters
 
 ### 3) Temporal Forecast
 - Method: lightweight trend extrapolation (NumPy linear forecast)
+- Model: `ARIMA(1,1,1)` (fallback to moving-average if unavailable)
 - Output: next 7-day forecast
 
 ## Deployment
@@ -135,3 +171,53 @@ pip install -r requirements.txt
 
 ### Streamlit Cloud dependency stability
 This project now uses a lightweight dependency set to reduce deployment failures on Streamlit Cloud (especially around compiled scientific packages).
+## Dataset Format
+
+CSV file must include:
+
+- `crime_type` (string)
+- `timestamp` (datetime string)
+- `latitude` (float)
+- `longitude` (float)
+
+### Example
+
+```csv
+crime_type,timestamp,latitude,longitude
+theft,2024-03-24T14:00:00,40.761776,-73.982323
+assault,2024-01-30T16:00:00,40.761942,-73.982541
+```
+
+## Notes
+
+- The backend ML model is `RandomForestClassifier`.
+- Model features: `hour`, `day_of_week`, `latitude`, `longitude`.
+- If uploaded data is invalid (missing columns, bad coordinates), the app shows a friendly error.
+
+
+## Model Persistence & Inference
+
+The backend trains a `RandomForestClassifier` on features:
+- `latitude`
+- `longitude`
+- `hour`
+- `day_of_week`
+
+A trained model is saved with `joblib` to:
+- `models/crime_risk_model.joblib`
+
+You can use programmatic inference with:
+
+```python
+from crime_hotspot_model import predict_crime_risk
+
+result = predict_crime_risk(40.73, -73.98, 21, 5)
+print(result)
+# {
+#   "crime_risk": "medium",
+#   "prediction_probability": 0.61,
+#   "low_probability": ...,
+#   "medium_probability": ...,
+#   "high_probability": ...
+# }
+```

@@ -28,3 +28,15 @@ def forecast_next_7_days(df: pd.DataFrame) -> pd.DataFrame:
 
     future_idx = pd.date_range(ts.index.max() + pd.Timedelta(days=1), periods=7, freq="D")
     return pd.DataFrame({"date": future_idx, "forecast_count": pred})
+    try:
+        from statsmodels.tsa.arima.model import ARIMA
+
+        model = ARIMA(ts["count"], order=(1, 1, 1))
+        fitted = model.fit()
+        forecast = fitted.forecast(steps=7)
+    except Exception:
+        last_mean = float(ts["count"].tail(14).mean()) if len(ts) else 0.0
+        forecast = pd.Series([last_mean] * 7)
+
+    future_idx = pd.date_range(ts.index.max() + pd.Timedelta(days=1), periods=7, freq="D")
+    return pd.DataFrame({"date": future_idx, "forecast_count": forecast.values})

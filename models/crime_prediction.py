@@ -6,6 +6,9 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 
 from config import MODEL_PATH, RANDOM_STATE
 from utils.feature_engineering import build_model_frame
@@ -17,6 +20,7 @@ RISK_LEVELS = ["low", "medium", "high"]
 @dataclass
 class PredictionArtifacts:
     model: dict
+    model: RandomForestClassifier
     accuracy: float
     classes: list[str]
 
@@ -24,6 +28,7 @@ class PredictionArtifacts:
 def derive_risk_labels(df: pd.DataFrame) -> pd.Series:
     bins = df["crime_frequency"].quantile([0.33, 0.66]).values
     q1, q2 = float(bins[0]), float(bins[1])
+    q1, q2 = bins[0], bins[1]
 
     def label(v: float) -> str:
         if v <= q1:
@@ -97,6 +102,25 @@ def train_crime_model(clean_df: pd.DataFrame) -> PredictionArtifacts:
     accuracy = float((pd.Series(pred_labels).values == y_test.values).mean())
 
     return PredictionArtifacts(model=model, accuracy=accuracy, classes=RISK_LEVELS)
+def train_crime_model(clean_df: pd.DataFrame) -> PredictionArtifacts:
+    model_df = build_model_frame(clean_df)
+    X = model_df[FEATURES]
+    y = derive_risk_labels(model_df)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.25, random_state=RANDOM_STATE, stratify=y
+    )
+
+    model = RandomForestClassifier(
+        n_estimators=320,
+        max_depth=14,
+        class_weight="balanced",
+        random_state=RANDOM_STATE,
+    )
+    model.fit(X_train, y_train)
+    accuracy = float(model.score(X_test, y_test))
+
+    return PredictionArtifacts(model=model, accuracy=accuracy, classes=list(model.classes_))
 
 
 def save_prediction_model(artifacts: PredictionArtifacts, model_path: Path = MODEL_PATH) -> Path:
@@ -128,6 +152,8 @@ def predict_crime_probability(
 ) -> dict[str, float | str]:
     payload = load_prediction_model(model_path)
     model = payload["model"]
+    model: RandomForestClassifier = payload["model"]
+    features: list[str] = payload["features"]
 
     sample = pd.DataFrame(
         [
@@ -143,6 +169,9 @@ def predict_crime_probability(
     )
     probs = _predict_proba(model, sample)[0]
     mapping = {lbl: float(prob) for lbl, prob in zip(RISK_LEVELS, probs)}
+    probs = model.predict_proba(sample[features])[0]
+    labels = list(model.classes_)
+    mapping = {lbl: float(prob) for lbl, prob in zip(labels, probs)}
     pred = max(mapping, key=mapping.get)
     return {
         "risk_level": pred,
