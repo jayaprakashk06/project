@@ -1,73 +1,99 @@
-# Crime Predictive Model & Hotspot Mapping Tool
+# Crime Hotspot AI
 
-This repository contains a practical baseline implementation for **urban crime hotspot prediction** using historical crime incident data.
+A Streamlit-based AI web app for urban crime analytics, hotspot mapping, and crime risk prediction using historical incident data.
 
-The solution includes:
-- A machine learning pipeline to estimate crime risk by location and time features.
-- A hotspot scoring workflow for map grids.
-- A map generator that visualizes high-risk areas using heatmaps.
-- A small command-line interface (CLI) for end-to-end execution.
+## Features
 
-## Problem Framing
+- **Dataset Upload**: Upload CSV crime data; if not provided, a sample dataset is loaded automatically.
+- **Crime Analytics Dashboard**:
+  - crimes by type
+  - crimes by hour
+  - crimes by location
+  - crime trend over time
+- **Hotspot Map**:
+  - incident markers
+  - heatmap layer
+  - hotspot clusters
+- **Crime Risk Prediction**:
+  - inputs: latitude, longitude, hour, day_of_week
+  - output: risk score + label (**LOW / MEDIUM / HIGH**)
 
-Law enforcement agencies need a data-driven way to answer:
-1. **Where** are crimes likely to occur next?
-2. **When** is risk elevated in each area?
-3. Which zones should receive proactive patrol allocation?
+## Project Structure
 
-This tool uses historical incident records to train a model and produce a hotspot map that can support operational planning.
+```text
+crime_hotspot_ai/
+├── app.py
+├── crime_hotspot_model.py
+├── dataset_generator.py
+├── map_visualization.py
+├── analytics.py
+├── requirements.txt
+├── README.md
+└── data/
+    └── sample_crime_data.csv
+```
 
-## Input Data Schema
-
-The model expects CSV data with these columns:
-
-- `crime_type` (string)
-- `timestamp` (ISO datetime string)
-- `latitude` (float)
-- `longitude` (float)
-
-Optional columns are ignored by the baseline model, but can be incorporated later.
-
-## Quick Start
+## Installation
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python crime_hotspot_model.py --input data/sample_crime_data.csv --output-map artifacts/hotspots.html
 ```
 
-## Outputs
-
-- `artifacts/hotspots.html`: Interactive hotspot heatmap.
-- Console metrics for predictive performance.
-- Optional CSV of scored grid cells (via `--output-grid`).
-
-## Method Summary
-
-1. Parse and clean historical records.
-2. Engineer temporal and spatial features:
-   - hour of day
-   - day of week
-   - month
-   - spatial bins (`lat_bin`, `lon_bin`)
-3. Build a binary target: whether a grid cell experiences an incident in a future time window.
-4. Train a `RandomForestClassifier` baseline.
-5. Score grid cells and visualize predicted risk as hotspots.
-
-## Example Command
+## Run the App
 
 ```bash
-python crime_hotspot_model.py \
-  --input data/sample_crime_data.csv \
-  --output-map artifacts/hotspots.html \
-  --output-grid artifacts/grid_scores.csv \
-  --grid-size 0.01
+streamlit run app.py
 ```
 
-## Notes for Real Deployments
+## Dataset Format
 
-- Replace sample data with city police incident exports.
-- Tune time-window definitions for operational shifts.
-- Add contextual features (events, weather, holidays, socioeconomic layers).
-- Evaluate fairness, bias, and privacy impacts before deployment.
+CSV file must include:
+
+- `crime_type` (string)
+- `timestamp` (datetime string)
+- `latitude` (float)
+- `longitude` (float)
+
+### Example
+
+```csv
+crime_type,timestamp,latitude,longitude
+theft,2024-03-24T14:00:00,40.761776,-73.982323
+assault,2024-01-30T16:00:00,40.761942,-73.982541
+```
+
+## Notes
+
+- The backend ML model is `RandomForestClassifier`.
+- Model features: `hour`, `day_of_week`, `latitude`, `longitude`.
+- If uploaded data is invalid (missing columns, bad coordinates), the app shows a friendly error.
+
+
+## Model Persistence & Inference
+
+The backend trains a `RandomForestClassifier` on features:
+- `latitude`
+- `longitude`
+- `hour`
+- `day_of_week`
+
+A trained model is saved with `joblib` to:
+- `models/crime_risk_model.joblib`
+
+You can use programmatic inference with:
+
+```python
+from crime_hotspot_model import predict_crime_risk
+
+result = predict_crime_risk(40.73, -73.98, 21, 5)
+print(result)
+# {
+#   "crime_risk": "medium",
+#   "prediction_probability": 0.61,
+#   "low_probability": ...,
+#   "medium_probability": ...,
+#   "high_probability": ...
+# }
+```
