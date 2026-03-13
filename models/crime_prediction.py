@@ -108,6 +108,22 @@ def train_crime_model(clean_df: pd.DataFrame) -> PredictionArtifacts:
     y = derive_risk_labels(model_df)
 
     X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.25,
+        random_state=RANDOM_STATE,
+        stratify=y,
+    )
+
+    model = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=12,
+        random_state=RANDOM_STATE,
+        class_weight="balanced",
+    )
+    model.fit(X_train, y_train)
+
+    accuracy = float(model.score(X_test, y_test))
         X, y, test_size=0.25, random_state=RANDOM_STATE, stratify=y
     )
 
@@ -180,3 +196,28 @@ def predict_crime_probability(
         "medium": float(mapping.get("medium", 0.0)),
         "high": float(mapping.get("high", 0.0)),
     }
+
+
+def predict_risk(
+    latitude: float,
+    longitude: float,
+    hour: int,
+    day: int,
+    month: int,
+    crime_frequency: float = 10.0,
+    model_path: Path = MODEL_PATH,
+) -> str:
+    """Simple API requested by user-style snippet.
+
+    Returns: "High Crime Risk" or "Low Crime Risk".
+    """
+    result = predict_crime_probability(
+        latitude=latitude,
+        longitude=longitude,
+        hour=hour,
+        day_of_week=day,
+        month=month,
+        crime_frequency=crime_frequency,
+        model_path=model_path,
+    )
+    return "High Crime Risk" if str(result["risk_level"]).lower() in {"high", "medium"} else "Low Crime Risk"

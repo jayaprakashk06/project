@@ -1,3 +1,5 @@
+"""Synthetic dataset generator for Tamil Nadu crime data."""
+
 from __future__ import annotations
 
 from pathlib import Path

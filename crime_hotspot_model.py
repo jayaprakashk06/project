@@ -1,3 +1,6 @@
+# Backward-compatible facade for crime intelligence modeling.
+#
+# Legacy entrypoints are preserved while delegating to the modular architecture.
 
 
 

@@ -108,6 +108,7 @@ If that file is missing, synthetic Tamil Nadu city-level crime data is generated
 ## AI Components
 
 ### 1) Crime Risk Prediction
+- Model: RandomForestClassifier
 - Model: lightweight centroid-probability classifier (dependency-stable fallback)
 - Model: `RandomForestClassifier`
 - Features: `latitude`, `longitude`, `hour`, `day_of_week`, `month`, `crime_frequency`
@@ -182,12 +183,30 @@ This project now uses a lightweight dependency set to reduce deployment failures
 ### Unterminated triple-quoted string error
 If you see `SyntaxError: unterminated triple-quoted string literal` in `crime_hotspot_model.py` on your local machine:
 
+1. Delete local stale bytecode and restart from a clean pull.
+
+   **macOS/Linux (bash):**
 1. Delete local stale bytecode and restart from a clean pull:
 ```bash
 find . -name "__pycache__" -type d -prune -exec rm -rf {} +
 git fetch --all
 git reset --hard origin/main
 ```
+
+   **Windows PowerShell:**
+```powershell
+Get-ChildItem -Path . -Filter "__pycache__" -Recurse -Directory | Remove-Item -Recurse -Force
+git fetch --all
+git reset --hard origin/main
+```
+
+   **Windows CMD:**
+```cmd
+for /d /r . %d in (__pycache__) do @if exist "%d" rd /s /q "%d"
+git fetch --all
+git reset --hard origin/main
+```
+
 2. Run verification before `streamlit run app.py`:
 ```bash
 pytest -q tests/test_syntax_smoke.py tests/test_runtime_imports.py
