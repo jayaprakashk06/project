@@ -1,3 +1,9 @@
+import pandas as pd
+import numpy as np
+
+import plotly.express as px
+import streamlit as st
+from streamlit_folium import st_folium
 from __future__ import annotations
 
 import numpy as np
@@ -115,12 +121,7 @@ if not PLOTLY_AVAILABLE:
 
 uploaded_file = st.sidebar.file_uploader("Upload crime dataset (CSV)", type=["csv"])
 
-import pandas as pd
-import numpy as np
 
-import plotly.express as px
-import streamlit as st
-from streamlit_folium import st_folium
 
 from analytics.crime_statistics import (
     crimes_by_district,
