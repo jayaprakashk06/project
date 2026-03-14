@@ -228,8 +228,8 @@ def render_dashboard(df: pd.DataFrame, district: str) -> None:
         if PLOTLY_AVAILABLE:
             fig_district = px.bar(district_count, x="district", y="count", title="Crime Count by District")
             fig_type = px.pie(crime_type_count, names="crime_type", values="count", title="Crime Type Distribution")
-            c1.plotly_chart(fig_district, use_container_width=True, key="district_chart")
-            c2.plotly_chart(fig_type, use_container_width=True, key="type_chart")
+            c1.plotly_chart(fig_district, width='stretch', key="district_chart")
+            c2.plotly_chart(fig_type, width='stretch', key="type_chart")
         else:
             c1.subheader("Crime Count by District")
             c1.bar_chart(district_count.set_index("district")["count"])
@@ -241,8 +241,8 @@ def render_dashboard(df: pd.DataFrame, district: str) -> None:
         if PLOTLY_AVAILABLE:
             fig_month = px.line(month_count, x="month", y="count", title="Crime Trend by Month")
             fig_hour = px.bar(hour_count, x="hour", y="count", title="Crime Occurrence by Hour")
-            c3.plotly_chart(fig_month, use_container_width=True, key="month_chart")
-            c4.plotly_chart(fig_hour, use_container_width=True, key="hour_chart")
+            c3.plotly_chart(fig_month, width='stretch', key="month_chart")
+            c4.plotly_chart(fig_hour, width='stretch', key="hour_chart")
         else:
             c3.subheader("Crime Trend by Month")
             c3.line_chart(month_count.set_index("month")["count"])
@@ -250,7 +250,7 @@ def render_dashboard(df: pd.DataFrame, district: str) -> None:
             c4.bar_chart(hour_count.set_index("hour")["count"])
 
     with tab3:
-        st.dataframe(filtered.head(50), use_container_width=True)
+        st.dataframe(filtered.head(50), width='stretch')
 
 
 def main() -> None:
@@ -270,9 +270,14 @@ def main() -> None:
         st.warning("`plotly` is not installed. Falling back to native Streamlit charts.")
 
     st.sidebar.markdown("## ⚙️ Control Center")
-    uploaded_file = st.sidebar.file_uploader("Upload crime dataset (CSV)", type=["csv"])
-    realtime_mode = st.sidebar.toggle("Realtime monitor mode", value=True)
-    show_raw = st.sidebar.toggle("Show raw source dataframe", value=False)
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload crime dataset (CSV)",
+        type=["csv"],
+        key="sidebar_upload_csv",
+    )
+    st.sidebar.caption("Tip: explicit widget keys are enabled to prevent duplicate-element errors during reruns.")
+    realtime_mode = st.sidebar.toggle("Realtime monitor mode", value=True, key="sidebar_realtime_mode")
+    show_raw = st.sidebar.toggle("Show raw source dataframe", value=False, key="sidebar_show_raw")
 
     try:
         raw_df = load_data(uploaded_file)
@@ -299,16 +304,16 @@ def main() -> None:
 
     with left:
         st.subheader("🎯 Predict Crime Probability")
-        lat = st.number_input("Latitude", value=float(df["latitude"].median()), format="%.6f")
-        lon = st.number_input("Longitude", value=float(df["longitude"].median()), format="%.6f")
-        hour = st.slider("Hour", 0, 23, int(df["hour"].mode().iat[0]))
-        day = st.slider("Day of Week", 1, 7, int(df["day"].mode().iat[0]))
-        month = st.slider("Month", 1, 12, int(df["month"].mode().iat[0]))
-        district = st.selectbox("District Focus", sorted(df["district"].unique()))
+        lat = st.number_input("Latitude", value=float(df["latitude"].median()), format="%.6f", key="pred_lat")
+        lon = st.number_input("Longitude", value=float(df["longitude"].median()), format="%.6f", key="pred_lon")
+        hour = st.slider("Hour", 0, 23, int(df["hour"].mode().iat[0]), key="pred_hour")
+        day = st.slider("Day of Week", 1, 7, int(df["day"].mode().iat[0]), key="pred_day")
+        month = st.slider("Month", 1, 12, int(df["month"].mode().iat[0]), key="pred_month")
+        district = st.selectbox("District Focus", sorted(df["district"].unique()), key="pred_district_focus")
 
         cta1, cta2 = st.columns(2)
-        predict_clicked = cta1.button("🚨 Predict Risk", use_container_width=True)
-        cta2.button("🔄 Refresh Stats", use_container_width=True)
+        predict_clicked = cta1.button("🚨 Predict Risk", width='stretch', key="btn_predict_risk")
+        cta2.button("🔄 Refresh Stats", width='stretch', key="btn_refresh_stats")
 
         st.markdown('<span class="pill">Realtime: {}</span><span class="pill">Model: RandomForest</span>'.format("ON" if realtime_mode else "OFF"), unsafe_allow_html=True)
 
@@ -333,7 +338,7 @@ def main() -> None:
 
     if show_raw:
         with st.expander("Raw uploaded/loaded dataframe", expanded=False):
-            st.dataframe(raw_df.head(100), use_container_width=True)
+            st.dataframe(raw_df.head(100), width='stretch')
 
 
 if __name__ == "__main__":
