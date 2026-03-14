@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import pandas as pd
+import streamlit as st
+from sklearn.ensemble import RandomForestClassifier
+
+st.set_page_config(page_title="SafeCity AI", page_icon="🛡️", layout="wide")
 import numpy as np
 
 import plotly.express as px
@@ -40,6 +44,75 @@ REQUIRED_COLUMNS = {
 
 FEATURE_COLUMNS = ["latitude", "longitude", "hour", "day", "month"]
 
+
+def inject_styles() -> None:
+    st.markdown(
+        """
+        <style>
+            .stApp {
+                background: radial-gradient(circle at 20% 10%, #111827 0%, #060b16 45%, #04070f 100%);
+            }
+            .main .block-container {
+                max-width: 1300px;
+                padding-top: 1.2rem;
+                padding-bottom: 2rem;
+            }
+            .hero {
+                padding: 1.2rem 1.4rem;
+                border-radius: 16px;
+                background: linear-gradient(135deg, rgba(37,99,235,0.23), rgba(14,165,233,0.15));
+                border: 1px solid rgba(148,163,184,0.25);
+                box-shadow: 0 8px 26px rgba(15,23,42,0.35);
+                margin-bottom: 1rem;
+            }
+            .hero h1 {
+                margin: 0;
+                font-size: 2.1rem;
+                color: #f8fafc;
+                letter-spacing: 0.2px;
+            }
+            .hero p {
+                margin: .35rem 0 0;
+                color: #cbd5e1;
+                font-size: 1rem;
+            }
+            .card {
+                border: 1px solid rgba(148,163,184,0.22);
+                background: linear-gradient(180deg, rgba(15,23,42,0.68), rgba(10,14,26,0.72));
+                border-radius: 14px;
+                padding: .9rem 1rem;
+                box-shadow: 0 8px 20px rgba(2,6,23,0.35);
+            }
+            .card .label {
+                color: #93c5fd;
+                font-size: .8rem;
+                text-transform: uppercase;
+                letter-spacing: .6px;
+                margin-bottom: .2rem;
+            }
+            .card .value {
+                color: #f8fafc;
+                font-size: 1.35rem;
+                font-weight: 700;
+            }
+            div[data-testid="stSidebar"] {
+                background: linear-gradient(180deg, #0b1120 0%, #090f1c 100%);
+                border-right: 1px solid rgba(148,163,184,0.18);
+            }
+            .pill {
+                display:inline-block;
+                padding: .2rem .55rem;
+                border-radius: 999px;
+                background: rgba(14,165,233,0.18);
+                border: 1px solid rgba(56,189,248,0.35);
+                color: #bae6fd;
+                font-size: .78rem;
+                margin-right: .35rem;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def build_default_dataset() -> pd.DataFrame:
     """Return a small built-in Tamil Nadu demo dataset."""
@@ -187,6 +260,50 @@ def render_dashboard(df: pd.DataFrame, district: str) -> None:
     month_count = df.groupby("month", as_index=False).size().rename(columns={"size": "count"})
     hour_count = df.groupby("hour", as_index=False).size().rename(columns={"size": "count"})
 
+    tab1, tab2, tab3 = st.tabs(["📊 Distribution", "🕒 Time Analysis", "🧾 Data Preview"])
+
+    with tab1:
+        c1, c2 = st.columns(2)
+        if PLOTLY_AVAILABLE:
+            fig_district = px.bar(district_count, x="district", y="count", title="Crime Count by District")
+            fig_type = px.pie(crime_type_count, names="crime_type", values="count", title="Crime Type Distribution")
+            c1.plotly_chart(fig_district, width='stretch', key="district_chart")
+            c2.plotly_chart(fig_type, width='stretch', key="type_chart")
+        else:
+            c1.subheader("Crime Count by District")
+            c1.bar_chart(district_count.set_index("district")["count"])
+            c2.subheader("Crime Type Distribution")
+            c2.bar_chart(crime_type_count.set_index("crime_type")["count"])
+
+    with tab2:
+        c3, c4 = st.columns(2)
+        if PLOTLY_AVAILABLE:
+            fig_month = px.line(month_count, x="month", y="count", title="Crime Trend by Month")
+            fig_hour = px.bar(hour_count, x="hour", y="count", title="Crime Occurrence by Hour")
+            c3.plotly_chart(fig_month, width='stretch', key="month_chart")
+            c4.plotly_chart(fig_hour, width='stretch', key="hour_chart")
+        else:
+            c3.subheader("Crime Trend by Month")
+            c3.line_chart(month_count.set_index("month")["count"])
+            c4.subheader("Crime Occurrence by Hour")
+            c4.bar_chart(hour_count.set_index("hour")["count"])
+
+    with tab3:
+        st.dataframe(filtered.head(50), width='stretch')
+
+
+def main() -> None:
+    inject_styles()
+
+    st.markdown(
+        """
+        <div class="hero">
+            <h1>🛡️ SafeCity AI Intelligence Console</h1>
+            <p>High-fidelity crime risk prediction dashboard with clean analytics workflow and interactive controls.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     c1, c2 = st.columns(2)
 
     if PLOTLY_AVAILABLE:
@@ -220,6 +337,15 @@ def main() -> None:
     if not PLOTLY_AVAILABLE:
         st.warning("`plotly` is not installed. Falling back to native Streamlit charts.")
 
+    st.sidebar.markdown("## ⚙️ Control Center")
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload crime dataset (CSV)",
+        type=["csv"],
+        key="sidebar_upload_csv",
+    )
+    st.sidebar.caption("Tip: explicit widget keys are enabled to prevent duplicate-element errors during reruns.")
+    realtime_mode = st.sidebar.toggle("Realtime monitor mode", value=True, key="sidebar_realtime_mode")
+    show_raw = st.sidebar.toggle("Show raw source dataframe", value=False, key="sidebar_show_raw")
     uploaded_file = st.sidebar.file_uploader("Upload crime dataset (CSV)", type=["csv"])
 
     try:
@@ -230,6 +356,62 @@ def main() -> None:
         st.error(f"Startup error: {exc}")
         st.stop()
 
+    # Top metric row
+    high_risk_rate = (df["risk"] == 1).mean() * 100
+    top_district = df["district"].value_counts().index[0]
+    top_crime = df["crime_type"].value_counts().index[0]
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.markdown(f'<div class="card"><div class="label">Total Records</div><div class="value">{len(df):,}</div></div>', unsafe_allow_html=True)
+    m2.markdown(f'<div class="card"><div class="label">High Risk Rate</div><div class="value">{high_risk_rate:.1f}%</div></div>', unsafe_allow_html=True)
+    m3.markdown(f'<div class="card"><div class="label">Top District</div><div class="value">{top_district}</div></div>', unsafe_allow_html=True)
+    m4.markdown(f'<div class="card"><div class="label">Top Crime Type</div><div class="value">{top_crime}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    left, right = st.columns([1.2, 1.8])
+
+    with left:
+        st.subheader("🎯 Predict Crime Probability")
+        lat = st.number_input("Latitude", value=float(df["latitude"].median()), format="%.6f", key="pred_lat")
+        lon = st.number_input("Longitude", value=float(df["longitude"].median()), format="%.6f", key="pred_lon")
+        hour = st.slider("Hour", 0, 23, int(df["hour"].mode().iat[0]), key="pred_hour")
+        day = st.slider("Day of Week", 1, 7, int(df["day"].mode().iat[0]), key="pred_day")
+        month = st.slider("Month", 1, 12, int(df["month"].mode().iat[0]), key="pred_month")
+        district = st.selectbox("District Focus", sorted(df["district"].unique()), key="pred_district_focus")
+
+        cta1, cta2 = st.columns(2)
+        predict_clicked = cta1.button("🚨 Predict Risk", width='stretch', key="btn_predict_risk")
+        cta2.button("🔄 Refresh Stats", width='stretch', key="btn_refresh_stats")
+
+        st.markdown('<span class="pill">Realtime: {}</span><span class="pill">Model: RandomForest</span>'.format("ON" if realtime_mode else "OFF"), unsafe_allow_html=True)
+
+        if predict_clicked:
+            pred, prob_high = predict_with_probability(
+                model=model,
+                latitude=lat,
+                longitude=lon,
+                hour=hour,
+                day=day,
+                month=month,
+            )
+            st.metric("Predicted High-Risk Probability", f"{prob_high:.2%}")
+            if pred == 1:
+                st.error("High Crime Risk Area")
+            else:
+                st.success("Low Crime Risk Area")
+
+    with right:
+        st.subheader("📈 Crime Intelligence Dashboard")
+        render_dashboard(df, district)
+
+    if show_raw:
+        with st.expander("Raw uploaded/loaded dataframe", expanded=False):
+            st.dataframe(raw_df.head(100), width='stretch')
+
+
+if __name__ == "__main__":
+    main()
     st.header("Predict Crime Probability")
     col1, col2, col3 = st.columns(3)
 
