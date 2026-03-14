@@ -115,9 +115,9 @@ if not PLOTLY_AVAILABLE:
 
 uploaded_file = st.sidebar.file_uploader("Upload crime dataset (CSV)", type=["csv"])
 
-try:
-    raw_df = load_data(uploaded_file)
-    df = validate_dataframe(raw_df)
+import pandas as pd
+import numpy as np
+
 import plotly.express as px
 import streamlit as st
 from streamlit_folium import st_folium
